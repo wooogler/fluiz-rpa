@@ -1,25 +1,23 @@
 {
   "name": "fluiz-rpa",
-  "version": "1.0.0",
-  "description": "This project was bootstrapped with Fastify-CLI.",
-  "main": "app.js",
-  "directories": {
-    "test": "test"
-  },
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "test": "node --test test/**/*.test.js",
-    "start": "fastify start -l info app.js",
-    "dev": "fastify start -w -l info -P app.js"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsnd --respawn --transpile-only --exit-child src/app.ts"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Sangwook Lee",
+  "license": "MIT",
   "dependencies": {
-    "fastify": "^4.26.1",
-    "fastify-plugin": "^4.0.0",
-    "@fastify/autoload": "^5.0.0",
-    "@fastify/sensible": "^5.0.0",
-    "fastify-cli": "^6.1.1"
+    "fastify": "^4.26.2",
+    "fastify-zod": "^1.4.0",
+    "zod": "^3.22.4",
+    "zod-to-json-schema": "^3.22.4"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0"
+  }
 }
