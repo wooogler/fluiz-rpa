@@ -8,38 +8,43 @@ const taskSchema = z.object({
   updatedAt: z.string(),
 });
 
-const eventSchema: z.ZodSchema = z.lazy(() =>
-  z.object({
-    uid: z.string(),
-    type: z.union([
-      z.literal("click"),
-      z.literal("input"),
-      z.literal("navigation-url"),
-      z.literal("navigation-back-forward"),
-      z.literal("tab-created"),
-      z.literal("window-created"),
-      z.literal("tab-removed"),
-      z.literal("window-removed"),
-      z.literal("input-cert"),
-    ]),
-    targetId: z.string(),
-    url: z.string(),
-    tabId: z.number(),
-    windowId: z.number(),
-    inputValue: z.string().optional(),
-    nextEvent: eventSchema.optional(),
-  })
-);
-
-const taskEventsSchema = taskSchema.extend({
-  events: z.array(eventSchema),
-});
-
 const getTasksResponseSchema = z.array(taskSchema);
 
 export type Task = z.infer<typeof taskSchema>;
 
+const eventSchema = z.object({
+  uid: z.string(),
+  type: z.union([
+    z.literal("click"),
+    z.literal("input"),
+    z.literal("navigation-url"),
+    z.literal("navigation-back-forward"),
+    z.literal("tab-created"),
+    z.literal("window-created"),
+    z.literal("tab-removed"),
+    z.literal("window-removed"),
+    z.literal("input-cert"),
+  ]),
+  targetId: z.string(),
+  url: z.string(),
+  tabId: z.number(),
+  windowId: z.number(),
+  inputValue: z.string().optional(),
+});
+
 export type Event = z.infer<typeof eventSchema>;
+
+export type LinkedEvent = Event & {
+  nextEvent?: LinkedEvent;
+};
+
+const linkedEventSchema: z.ZodType<LinkedEvent> = eventSchema.extend({
+  nextEvent: z.lazy(() => linkedEventSchema).optional(),
+});
+
+const taskEventsSchema = taskSchema.extend({
+  events: z.array(linkedEventSchema),
+});
 
 export type TaskEvents = z.infer<typeof taskEventsSchema>;
 

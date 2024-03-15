@@ -1,5 +1,6 @@
 import axios from "axios";
-import { Event, Task, TaskEvents } from "./task.schema";
+import { LinkedEvent, Task, TaskEvents, Event } from "./task.schema";
+import { replayEvents } from "../rpa";
 
 export async function getTasks() {
   const response = await axios.get<Task[]>(
@@ -8,11 +9,18 @@ export async function getTasks() {
   return response.data;
 }
 
-const flattenEvents = (event: Event, events: Event[] = []) => {
-  events.push(event);
-  if (event.nextEvent) {
-    flattenEvents(event.nextEvent, events);
+const flattenEvents = (
+  event: LinkedEvent | undefined,
+  events: Event[] = []
+): Event[] => {
+  if (!event) return events;
+  const { nextEvent, ...currentEvent } = event;
+  events.push(currentEvent);
+
+  if (nextEvent) {
+    return flattenEvents(nextEvent, events);
   }
+
   return events;
 };
 
@@ -23,5 +31,8 @@ export async function replayTask(taskId: string) {
   const events = response.data.events;
   const flattenedEvents = events.flatMap((event) => flattenEvents(event));
   console.log(flattenedEvents);
+
+  await replayEvents(flattenedEvents);
+
   return response.data;
 }

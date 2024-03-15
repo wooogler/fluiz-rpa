@@ -11,9 +11,11 @@
   "author": "Sangwook Lee",
   "license": "MIT",
   "dependencies": {
+    "@types/selenium-webdriver": "^4.1.22",
     "axios": "^1.6.7",
     "fastify": "^4.26.2",
     "fastify-zod": "^1.4.0",
+    "selenium-webdriver": "^4.18.1",
     "zod": "^3.22.4",
     "zod-to-json-schema": "^3.22.4"
   },
