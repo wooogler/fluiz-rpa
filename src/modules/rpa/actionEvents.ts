@@ -1,6 +1,6 @@
-import { By, WebDriver, until } from "selenium-webdriver";
+import { By, WebDriver, WebElement, until } from "selenium-webdriver";
 
-function getFindBy(targetId: string) {
+export function getFindBy(targetId: string) {
   if (targetId.startsWith("id=")) {
     return By.id(targetId.replace("id=", ""));
   } else if (targetId.startsWith("name=")) {
@@ -14,44 +14,84 @@ function getFindBy(targetId: string) {
   }
 }
 
-async function waitForElement(
+export async function findElement(
   driver: WebDriver,
   by: By,
   timeout: number = 10000
 ) {
-  const element = await driver.wait(until.elementLocated(by), timeout);
-  await driver.wait(until.elementIsVisible(element), timeout);
-  return element;
-}
+  let context: "main" | "iframe" = "main";
 
-export async function clickElement(
-  driver: WebDriver,
-  targetId: string,
-  windowHandle?: string
-) {
-  console.log(targetId, windowHandle, "clickElement");
-  if (windowHandle) {
-    await driver.switchTo().window(windowHandle);
+  let iframe = await driver
+    .findElement(By.css("body > iframe"))
+    .catch((e) => null);
+
+  if (iframe) {
+    await driver.switchTo().frame(iframe);
+    context = "iframe";
   }
 
+  let element = await driver
+    .wait(until.elementLocated(by), timeout)
+    .catch((e) => null);
+  if (!element) {
+    throw new Error("element not found");
+  }
+
+  return { element, context };
+}
+
+export async function clickElement(driver: WebDriver, targetId: string) {
   const by = getFindBy(targetId);
 
-  const element = await waitForElement(driver, by);
+  const { element, context } = await findElement(driver, by, 10000);
   await element.click();
+
+  if (context === "iframe") {
+    await driver.switchTo().defaultContent();
+  }
 }
 
 export async function inputElement(
   driver: WebDriver,
   targetId: string,
   inputValue: string,
-  windowHandle?: string
+  dataMap: Map<string, string>
 ) {
-  if (windowHandle) {
-    await driver.switchTo().window(windowHandle);
+  const by = getFindBy(targetId);
+
+  const { element, context } = await findElement(driver, by, 10000);
+
+  if (dataMap.has(inputValue)) {
+    inputValue = dataMap.get(inputValue) || "";
+  }
+  await element.sendKeys(inputValue);
+
+  if (context === "iframe") {
+    await driver.switchTo().defaultContent();
+  }
+}
+
+export async function extractInfo(
+  driver: WebDriver,
+  targetId: string,
+  key?: string,
+  dataMap?: Map<string, string>
+) {
+  if (!key || !dataMap) {
+    throw new Error("key or dataMap is required");
   }
 
   const by = getFindBy(targetId);
+  const { element, context } = await findElement(driver, by, 10000);
+  const value = await element.getText();
 
-  const element = await waitForElement(driver, by);
-  await element.sendKeys(inputValue);
+  dataMap.set(key, value);
+
+  if (context === "iframe") {
+    await driver.switchTo().defaultContent();
+  }
+}
+
+export async function enterPress(driver: WebDriver) {
+  await driver.actions().sendKeys("\uE007").perform();
 }

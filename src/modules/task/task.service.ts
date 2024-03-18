@@ -9,6 +9,16 @@ export async function getTasks() {
   return response.data;
 }
 
+export async function getTask(taskId: string) {
+  const response = await axios.get<TaskEvents>(
+    `https://api.fluiz.io/api/tasks/${taskId}`
+  );
+  const events = response.data.events;
+  const flattenedEvents = events.flatMap((event) => flattenEvents(event));
+  console.log(flattenedEvents);
+  return response.data;
+}
+
 const flattenEvents = (
   event: LinkedEvent | undefined,
   events: Event[] = []
@@ -24,15 +34,15 @@ const flattenEvents = (
   return events;
 };
 
-export async function replayTask(taskId: string) {
+export async function replayTask(taskId: string, data: Record<string, string>) {
   const response = await axios.get<TaskEvents>(
-    `http://125.131.73.23:8855/api/tasks/${taskId}`
+    `https://api.fluiz.io/api/tasks/${taskId}`
   );
   const events = response.data.events;
   const flattenedEvents = events.flatMap((event) => flattenEvents(event));
   console.log(flattenedEvents);
 
-  await replayEvents(flattenedEvents);
+  const result = await replayEvents(flattenedEvents, data);
 
-  return response.data;
+  return result;
 }

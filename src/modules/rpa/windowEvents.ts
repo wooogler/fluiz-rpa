@@ -7,21 +7,15 @@ export async function openWindow(driver: WebDriver, url: string) {
       .executeScript("return document.readyState")
       .then((readyState) => readyState === "complete")
   );
-
-  await driver.wait(until.elementLocated(By.css("iframe")), 10000); // 10초 대기
-
-  let iframes = await driver.findElements(By.css("iframe"));
-  console.log("Number of iframes found:", iframes.length);
-
-  if (iframes.length > 0) {
-    const bodyChildIframe = await driver.findElements(By.css("body > iframe"));
-    if (bodyChildIframe.length > 0) {
-      await driver.switchTo().frame(bodyChildIframe[0]);
-      console.log("Switched to the iframe directly under body");
-    }
-  }
+  await driver.sleep(1000);
 
   const windowHandle = await driver.getWindowHandle();
-  console.log(windowHandle, "openWindow");
   return windowHandle;
+}
+
+export async function closeTab(driver: WebDriver, windowHandle?: string) {
+  if (windowHandle) {
+    await driver.switchTo().window(windowHandle);
+    await driver.close();
+  }
 }

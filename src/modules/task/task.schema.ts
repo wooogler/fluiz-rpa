@@ -24,6 +24,8 @@ const eventSchema = z.object({
     z.literal("tab-removed"),
     z.literal("window-removed"),
     z.literal("input-cert"),
+    z.literal("extract"),
+    z.literal("enter-press"),
   ]),
   targetId: z.string(),
   url: z.string(),

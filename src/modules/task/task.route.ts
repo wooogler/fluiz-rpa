@@ -1,5 +1,9 @@
 import { FastifyInstance } from "fastify";
-import { getTasksHandler, replayTaskEventsHandler } from "./task.controller";
+import {
+  getTaskEventHandler,
+  getTasksHandler,
+  replayTaskEventsHandler,
+} from "./task.controller";
 import { $ref } from "./task.schema";
 
 async function taskRoutes(server: FastifyInstance) {
@@ -21,6 +25,16 @@ async function taskRoutes(server: FastifyInstance) {
       schema: {
         params: { taskId: { type: "string" } },
         response: { 200: $ref("taskEventsSchema") },
+      },
+    },
+    getTaskEventHandler
+  );
+
+  server.post(
+    "/:taskId",
+    {
+      schema: {
+        params: { taskId: { type: "string" } },
       },
     },
     replayTaskEventsHandler
