@@ -26,6 +26,8 @@ const eventSchema = z.object({
     z.literal("input-cert"),
     z.literal("extract"),
     z.literal("enter-press"),
+    z.literal("select-option"),
+    z.literal("screenshot"),
   ]),
   targetId: z.string(),
   url: z.string(),

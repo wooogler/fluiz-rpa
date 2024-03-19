@@ -1,4 +1,6 @@
 import { By, WebDriver, WebElement, until } from "selenium-webdriver";
+import fs from "fs";
+import path from "path";
 
 export function getFindBy(targetId: string) {
   if (targetId.startsWith("id=")) {
@@ -94,4 +96,55 @@ export async function extractInfo(
 
 export async function enterPress(driver: WebDriver) {
   await driver.actions().sendKeys("\uE007").perform();
+}
+
+export async function selectOption(
+  driver: WebDriver,
+  targetId: string,
+  optionText?: string
+) {
+  if (optionText === undefined) {
+    throw new Error("optionText is required");
+  }
+  const by = getFindBy(targetId);
+  const { element, context } = await findElement(driver, by, 10000);
+  const options = await element.findElements(By.css("option"));
+  let optionFound = false;
+
+  for (const option of options) {
+    const text = await option.getText();
+    if (text === optionText) {
+      await option.click();
+      optionFound = true;
+      break;
+    }
+  }
+
+  if (!optionFound) {
+    throw new Error(`option not found: ${optionText}`);
+  }
+
+  if (context === "iframe") {
+    await driver.switchTo().defaultContent();
+  }
+}
+
+export async function screenshotElement(
+  driver: WebDriver,
+  targetId: string,
+  fileName?: string
+) {
+  const by = getFindBy(targetId);
+  const { element, context } = await findElement(driver, by, 10000);
+  const screenshot = await element.takeScreenshot(true);
+  const filePath = path.join(
+    __dirname,
+    "file",
+    `${fileName}.png` || "no_name.png"
+  );
+  fs.writeFileSync(filePath, screenshot, "base64");
+  console.log(`screenshot saved: ${filePath}`);
+  if (context === "iframe") {
+    await driver.switchTo().defaultContent();
+  }
 }

@@ -7,6 +7,8 @@ import {
   enterPress,
   extractInfo,
   inputElement,
+  screenshotElement,
+  selectOption,
 } from "./actionEvents";
 import { inputCert } from "./specificEvents";
 
@@ -75,6 +77,10 @@ export async function replayEvents(
             await enterPress(driver);
           } else if (event.type === "input-cert") {
             await inputCert(driver, event.targetId, event.inputValue, dataMap);
+          } else if (event.type === "select-option") {
+            await selectOption(driver, event.targetId, event.inputValue);
+          } else if (event.type === "screenshot") {
+            await screenshotElement(driver, event.targetId, event.inputValue);
           }
         }
       } catch (e) {
