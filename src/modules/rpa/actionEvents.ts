@@ -39,6 +39,11 @@ export async function findElement(
     throw new Error("element not found");
   }
 
+  let isVisible = await element.isDisplayed();
+  if (!isVisible) {
+    throw new Error("element found but not visible");
+  }
+
   return { element, context };
 }
 
@@ -108,21 +113,26 @@ export async function selectOption(
   }
   const by = getFindBy(targetId);
   const { element, context } = await findElement(driver, by, 10000);
-  const options = await element.findElements(By.css("option"));
-  let optionFound = false;
+  await driver.wait(
+    async () => {
+      const options = await element.findElements(By.css("option"));
+      for (const option of options) {
+        const text = await option.getText();
+        if (text === optionText) {
+          await option.click();
+          return true;
+        }
+      }
+      return false;
+    },
+    1000,
+    `Option with text "${optionText}" not found in element with ${targetId}`
+  );
 
-  for (const option of options) {
-    const text = await option.getText();
-    if (text === optionText) {
-      await option.click();
-      optionFound = true;
-      break;
-    }
-  }
-
-  if (!optionFound) {
-    throw new Error(`option not found: ${optionText}`);
-  }
+  const optionToClick = await element.findElement(
+    By.xpath(`.//option[normalize-space(.) = ${JSON.stringify(optionText)}]`)
+  );
+  await optionToClick.click();
 
   if (context === "iframe") {
     await driver.switchTo().defaultContent();
