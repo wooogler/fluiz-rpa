@@ -3,14 +3,16 @@ import fs from "fs";
 import path from "path";
 
 export function getFindBy(targetId: string) {
-  if (targetId.startsWith("id=")) {
-    return By.id(targetId.replace("id=", ""));
-  } else if (targetId.startsWith("name=")) {
-    return By.name(targetId.replace("name=", ""));
-  } else if (targetId.startsWith("linkText=")) {
-    return By.linkText(targetId.replace("linkText=", ""));
-  } else if (targetId.startsWith("css=")) {
-    return By.css(targetId.replace("css=", ""));
+  const firstAttribute = targetId.split(";")[0];
+
+  if (firstAttribute.startsWith("id=")) {
+    return By.id(firstAttribute.replace("id=", ""));
+  } else if (firstAttribute.startsWith("name=")) {
+    return By.name(firstAttribute.replace("name=", ""));
+  } else if (firstAttribute.startsWith("linkText=")) {
+    return By.linkText(firstAttribute.replace("linkText=", ""));
+  } else if (firstAttribute.startsWith("css=")) {
+    return By.css(firstAttribute.replace("css=", ""));
   } else {
     throw new Error(`Unsupported targetId format: ${targetId}`);
   }
@@ -47,6 +49,32 @@ export async function findElement(
   return { element, context };
 }
 
+export async function findElements(
+  driver: WebDriver,
+  by: By,
+  timeout: number = 10000
+) {
+  let context: "main" | "iframe" = "main";
+
+  let iframe = await driver
+    .findElement(By.css("body > iframe"))
+    .catch((e) => null);
+
+  if (iframe) {
+    await driver.switchTo().frame(iframe);
+    context = "iframe";
+  }
+
+  let elements = await driver
+    .wait(until.elementsLocated(by), timeout)
+    .catch((e) => null);
+  if (!elements) {
+    throw new Error("elements not found");
+  }
+
+  return { elements, context };
+}
+
 export async function clickElement(driver: WebDriver, targetId: string) {
   const by = getFindBy(targetId);
 
@@ -58,6 +86,11 @@ export async function clickElement(driver: WebDriver, targetId: string) {
   }
 }
 
+export function extractBetweenSymbols(input: string): string {
+  const match = input.match(/>(.*?)\(/);
+  return match ? match[1] : input;
+}
+
 export async function inputElement(
   driver: WebDriver,
   targetId: string,
@@ -65,11 +98,13 @@ export async function inputElement(
   dataMap: Map<string, string>
 ) {
   const by = getFindBy(targetId);
+  inputValue = extractBetweenSymbols(inputValue);
 
   const { element, context } = await findElement(driver, by, 10000);
 
   if (dataMap.has(inputValue)) {
-    inputValue = dataMap.get(inputValue) || "";
+    const data = dataMap.get(inputValue);
+    inputValue = data as string;
   }
   await element.sendKeys(inputValue);
 
@@ -106,37 +141,78 @@ export async function enterPress(driver: WebDriver) {
 export async function selectOption(
   driver: WebDriver,
   targetId: string,
-  optionText?: string
+  optionText?: string,
+  dataMap?: Map<string, string>
 ) {
   if (optionText === undefined) {
     throw new Error("optionText is required");
   }
-  const by = getFindBy(targetId);
-  const { element, context } = await findElement(driver, by, 10000);
-  await driver.wait(
-    async () => {
-      const options = await element.findElements(By.css("option"));
-      for (const option of options) {
-        const text = await option.getText();
-        if (text === optionText) {
-          await option.click();
-          return true;
-        }
-      }
-      return false;
-    },
-    1000,
-    `Option with text "${optionText}" not found in element with ${targetId}`
-  );
 
-  const optionToClick = await element.findElement(
-    By.xpath(`.//option[normalize-space(.) = ${JSON.stringify(optionText)}]`)
-  );
-  await optionToClick.click();
+  optionText = extractBetweenSymbols(optionText);
 
-  if (context === "iframe") {
-    await driver.switchTo().defaultContent();
+  if (dataMap && dataMap.has(optionText)) {
+    optionText = dataMap.get(optionText) || optionText;
   }
+
+  const by = getFindBy(targetId);
+  try {
+    const { element, context } = await findElement(driver, by, 10000);
+    if (await selectFromElement(element, optionText)) {
+      if (context === "iframe") {
+        await driver.switchTo().defaultContent();
+      }
+      return;
+    }
+  } catch (e) {
+    console.log(e);
+    console.log("Initial search failed, try expanding search area");
+  }
+
+  const cssSelector = targetId
+    .split(";")
+    .find((part) => part.startsWith("css="))
+    ?.replace("css=", "");
+  if (cssSelector) {
+    let selectors = cssSelector.split(" > ");
+    while (selectors.length > 0) {
+      try {
+        const currentSelector = selectors.join(" > ");
+        const { elements, context } = await findElements(
+          driver,
+          By.css(currentSelector),
+          1000
+        );
+        for (const element of elements) {
+          if (await selectFromElement(element, optionText)) {
+            if (context === "iframe") {
+              await driver.switchTo().defaultContent();
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        console.log(
+          `Search failed for selector ${selectors.join(" > ")}, error: ${e}`
+        );
+      }
+      selectors.pop();
+    }
+    throw new Error(
+      `Option with text "${optionText}" not found in element with ${targetId}`
+    );
+  }
+}
+
+async function selectFromElement(element: WebElement, optionText: string) {
+  const options = await element.findElements(By.css("option"));
+  for (const option of options) {
+    const text = await option.getText();
+    if (text === optionText) {
+      await option.click();
+      return true;
+    }
+  }
+  return false;
 }
 
 export async function screenshotElement(

@@ -11,6 +11,7 @@ import {
   selectOption,
 } from "./actionEvents";
 import { inputCert } from "./specificEvents";
+import updateDataMap from "./updateDataMap";
 
 const chromeDriverPath = path.join(
   __dirname,
@@ -22,10 +23,6 @@ const chromeDriverPath = path.join(
 
 process.env["webdriver.chrome.driver"] = chromeDriverPath;
 
-function getDriver(): WebDriver {
-  return new Builder().forBrowser("chrome").build();
-}
-
 export async function replayEvents(
   events: Event[],
   data: Record<string, string>
@@ -36,8 +33,15 @@ export async function replayEvents(
     dataMap.set(key, value);
   }
 
-  const driver = getDriver();
+  const driver = new Builder().forBrowser("chrome").build();
+
   try {
+    let inputValues: string[] = [];
+    events.forEach((event) => {
+      if (event.inputValue && event.inputValue.includes(">")) {
+        inputValues.push(event.inputValue);
+      }
+    });
     for (const event of events) {
       try {
         if (event.type === "window-created") {
@@ -78,11 +82,17 @@ export async function replayEvents(
           } else if (event.type === "input-cert") {
             await inputCert(driver, event.targetId, event.inputValue, dataMap);
           } else if (event.type === "select-option") {
-            await selectOption(driver, event.targetId, event.inputValue);
+            await selectOption(
+              driver,
+              event.targetId,
+              event.inputValue,
+              dataMap
+            );
           } else if (event.type === "screenshot") {
             await screenshotElement(driver, event.targetId, event.inputValue);
           }
         }
+        await updateDataMap(dataMap, inputValues);
       } catch (e) {
         console.error(
           `Error processing event: ${JSON.stringify(event)}. Error: ${e}`
@@ -92,7 +102,14 @@ export async function replayEvents(
     }
   } catch (e) {
     console.error(e);
+  } finally {
+    console.log(dataMap);
+    await driver.quit();
   }
 
   return dataMap;
 }
+
+// input: input
+// extract: output
+// input:
