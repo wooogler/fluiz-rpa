@@ -87,12 +87,16 @@ export async function findElement(
 
   let isVisible = await element.isDisplayed();
   if (!isVisible) {
-    throw new Error("element found but not visible");
+    throw new Error(`element found but not visible: ${targetId}`);
   }
 
-  const tempId = new Date().getTime();
+  const tempId = new Date().getTime().toString();
   await driver.executeScript(
-    `arguments[0].setAttribute('data-temp-id', '${tempId}');`,
+    `const setTempId = (el, id) => {
+      el.setAttribute('data-temp-id', id);
+      Array.from(el.querySelectorAll('*')).forEach(child => child.setAttribute('data-temp-id', id));
+    };
+    setTempId(arguments[0], '${tempId}');`,
     element
   );
 
@@ -123,7 +127,11 @@ export async function findElement(
   }
 
   await driver.executeScript(
-    `arguments[0].removeAttribute('data-temp-id');`,
+    `const clearTempId = el => {
+      el.removeAttribute('data-temp-id');
+      Array.from(el.querySelectorAll('*')).forEach(child => child.removeAttribute('data-temp-id'));
+    };
+    clearTempId(arguments[0]);`,
     element
   );
 
@@ -241,25 +249,19 @@ export async function inputElement(
 
   inputValue = extractBetweenSymbols(inputValue);
   if (dataMap.has(inputValue)) {
-    inputValue = dataMap.get(inputValue) || inputValue;
+    inputValue = dataMap.get(inputValue) || "";
   }
 
+  console.log(`input value for ${targetId}: ${inputValue}`);
   await element.sendKeys(inputValue);
 
   let elementValue = await driver.executeScript(
     "return arguments[0].value",
     element
   );
-  if (elementValue !== inputValue) {
-    await driver.executeScript(`arguments[0].value = '${inputValue}'`, element);
 
-    elementValue = await driver.executeScript(
-      "return arguments[0].value",
-      element
-    );
-    if (elementValue !== inputValue) {
-      throw new Error(`Failed to input '${inputValue}' into ${targetId}.`);
-    }
+  if (String(elementValue) !== String(inputValue)) {
+    await driver.executeScript(`arguments[0].value = '${inputValue}'`, element);
   }
 
   if (switchedToIframe) {

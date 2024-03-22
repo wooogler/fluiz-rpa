@@ -70,9 +70,7 @@ async function updateDataMap(
         },
       ],
     });
-    console.log(prompt);
     const responseJson = response.choices[0].message.content;
-    console.log(responseJson);
 
     if (responseJson) {
       const responseData = JSON.parse(responseJson);

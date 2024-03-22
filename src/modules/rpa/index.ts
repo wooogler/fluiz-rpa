@@ -27,7 +27,7 @@ process.env["webdriver.chrome.driver"] = chromeDriverPath;
 export async function replayEvents(
   events: Event[],
   data: Record<string, string>,
-  termTime: number = 1000,
+  termTime: number = 500,
   quit: boolean = false
 ) {
   const windowHandlesMap = new Map<string, string>();

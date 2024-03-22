@@ -15,7 +15,6 @@ export async function getTask(taskId: string) {
   );
   const events = response.data.events;
   const flattenedEvents = events.flatMap((event) => flattenEvents(event));
-  console.log(flattenedEvents);
   return response.data;
 }
 
@@ -40,7 +39,6 @@ export async function replayTask(taskId: string, data: Record<string, string>) {
   );
   const events = response.data.events;
   const flattenedEvents = events.flatMap((event) => flattenEvents(event));
-  console.log(flattenedEvents);
 
   const result = await replayEvents(flattenedEvents, data);
 
