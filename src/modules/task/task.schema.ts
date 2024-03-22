@@ -28,6 +28,7 @@ const eventSchema = z.object({
     z.literal("enter-press"),
     z.literal("select-option"),
     z.literal("screenshot"),
+    z.literal("accept-popup"),
   ]),
   targetId: z.string(),
   url: z.string(),

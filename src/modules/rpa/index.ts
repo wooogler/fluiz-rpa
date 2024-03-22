@@ -3,6 +3,7 @@ import path from "path";
 import { Event } from "../task/task.schema";
 import { closeTab, openWindow } from "./windowEvents";
 import {
+  acceptPopup,
   clickElement,
   enterPress,
   extractInfo,
@@ -25,7 +26,9 @@ process.env["webdriver.chrome.driver"] = chromeDriverPath;
 
 export async function replayEvents(
   events: Event[],
-  data: Record<string, string>
+  data: Record<string, string>,
+  termTime: number = 1000,
+  quit: boolean = false
 ) {
   const windowHandlesMap = new Map<string, string>();
   const dataMap = new Map<string, string>();
@@ -42,22 +45,23 @@ export async function replayEvents(
         inputValues.push(event.inputValue);
       }
     });
+    let windowHandle: string | null = null;
+
     for (const event of events) {
       try {
+        const key = `${event.windowId}:${event.tabId}`;
         if (event.type === "window-created") {
-          const windowHandle = await openWindow(driver, event.url);
-          const key = `${event.windowId}:${event.tabId}`;
+          windowHandle = await openWindow(driver, event.url);
           windowHandlesMap.set(key, windowHandle);
         } else if (event.type === "tab-removed") {
-          const key = `${event.windowId}:${event.tabId}`;
-          const windowHandle = windowHandlesMap.get(key);
-          await closeTab(driver, windowHandle);
+          await closeTab(driver, windowHandlesMap.get(key) || null);
           windowHandlesMap.delete(key);
         } else {
-          const key = `${event.windowId}:${event.tabId}`;
-          const windowHandle = windowHandlesMap.get(key);
+          const eventWindowHandle = windowHandlesMap.get(key);
 
-          if (windowHandle) {
+          if (eventWindowHandle && windowHandle !== eventWindowHandle) {
+            console.log("switching to window", eventWindowHandle);
+            windowHandle = eventWindowHandle;
             await driver.switchTo().window(windowHandle);
           }
 
@@ -70,7 +74,7 @@ export async function replayEvents(
               event.inputValue,
               dataMap
             );
-          } else if (event.type === "extract") {
+          } else if (event.type === "extract" && event.inputValue) {
             await extractInfo(
               driver,
               event.targetId,
@@ -90,9 +94,12 @@ export async function replayEvents(
             );
           } else if (event.type === "screenshot") {
             await screenshotElement(driver, event.targetId, event.inputValue);
+          } else if (event.type === "accept-popup") {
+            await acceptPopup(driver);
           }
         }
         await updateDataMap(dataMap, inputValues);
+        await driver.sleep(termTime);
       } catch (e) {
         console.error(
           `Error processing event: ${JSON.stringify(event)}. Error: ${e}`
@@ -104,12 +111,10 @@ export async function replayEvents(
     console.error(e);
   } finally {
     console.log(dataMap);
-    await driver.quit();
+    if (quit) {
+      await driver.quit();
+    }
   }
 
   return dataMap;
 }
-
-// input: input
-// extract: output
-// input:

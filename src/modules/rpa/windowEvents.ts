@@ -1,7 +1,8 @@
 import { Builder, By, WebDriver, until } from "selenium-webdriver";
 
 export async function openWindow(driver: WebDriver, url: string) {
-  console.log("openWindow");
+  console.log("opening new window");
+
   await driver.switchTo().newWindow("tab");
   await driver.get(url);
   console.log("openWindow: get", url);
@@ -11,13 +12,23 @@ export async function openWindow(driver: WebDriver, url: string) {
     return readyState === "complete";
   }, 10000);
 
-  console.log("openWindow: wait");
+  const allWindowHandles = await driver.getAllWindowHandles();
 
-  const windowHandle = await driver.getWindowHandle();
-  return windowHandle;
+  let targetWindowHandle = null;
+  for (const windowHandle of allWindowHandles) {
+    await driver.switchTo().window(windowHandle);
+    const currentUrl = await driver.getCurrentUrl();
+    if (currentUrl === url) {
+      targetWindowHandle = windowHandle;
+      console.log("openWindow: found window", windowHandle);
+      break;
+    }
+  }
+
+  return targetWindowHandle || "";
 }
 
-export async function closeTab(driver: WebDriver, windowHandle?: string) {
+export async function closeTab(driver: WebDriver, windowHandle: string | null) {
   if (windowHandle) {
     await driver.switchTo().window(windowHandle);
     await driver.close();
