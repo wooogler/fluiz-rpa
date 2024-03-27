@@ -11,13 +11,23 @@ export async function switchToIframeIfNeeded(
     /\[id=(.*?)\]|\[name=(.*?)\]|\[src=(.*?)\]/g
   );
   if (iframeIdentifiers) {
+    const currentPageUrl = await driver.getCurrentUrl();
+    const baseUrl = new URL(currentPageUrl);
+
     for (const identifier of iframeIdentifiers) {
       const match = identifier.match(
         /\[id=(.*?)\]|\[name=(.*?)\]|\[src=(.*?)\]/
       );
       const iframeId = match ? match[1] : null;
       const iframeName = match ? match[2] : null;
-      const iframeSrc = match ? match[3] : null;
+      let iframeSrc = match ? match[3] : null;
+
+      if (iframeSrc) {
+        const srcUrl = new URL(iframeSrc, baseUrl.href);
+        if (srcUrl.origin === baseUrl.origin) {
+          iframeSrc = srcUrl.pathname + srcUrl.search + srcUrl.hash;
+        }
+      }
 
       let iframe;
 
@@ -161,6 +171,10 @@ export async function clickElement(driver: WebDriver, targetId: string) {
   try {
     const element = await findElement(driver, targetId, 1000);
     await element.click();
+    try {
+      const alert = await driver.switchTo().alert();
+      await alert.accept();
+    } catch (alertError) {}
   } catch (e) {
     console.log(`Initial search failed, try expanding search area: ${e}`);
 

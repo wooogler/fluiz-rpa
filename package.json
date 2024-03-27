@@ -11,6 +11,7 @@
   "author": "Sangwook Lee",
   "license": "MIT",
   "dependencies": {
+    "@fastify/cors": "^9.0.1",
     "@types/selenium-webdriver": "^4.1.22",
     "axios": "^1.6.7",
     "dotenv": "^16.4.5",

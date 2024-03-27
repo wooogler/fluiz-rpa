@@ -22,8 +22,7 @@ export async function inputCert(
   const keyboardTypes = identifyKeyboardType(keySequence);
   for (const [index, key] of keySequence.entries()) {
     const targetId = `css=${keyboardTypes[index]} > .kpd-data:nth-child(${keyDict[key]})`;
-    const by = getFindBy(targetId);
-    const { element, context } = await findElement(driver, by, 10000);
+    const element = await findElement(driver, targetId, 10000);
 
     try {
       console.log("key: ", keySequence[index], ", targetId: ", targetId);
@@ -32,10 +31,6 @@ export async function inputCert(
       console.log(e, targetId);
     }
     await driver.sleep(100);
-
-    if (context === "iframe") {
-      await driver.switchTo().defaultContent();
-    }
   }
 }
 

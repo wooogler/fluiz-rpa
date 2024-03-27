@@ -2,10 +2,8 @@ import { Builder, By, WebDriver, until } from "selenium-webdriver";
 
 export async function openWindow(driver: WebDriver, url: string) {
   console.log("opening new window");
-
   await driver.switchTo().newWindow("tab");
   await driver.get(url);
-  console.log("openWindow: get", url);
 
   await driver.wait(async () => {
     const readyState = await driver.executeScript("return document.readyState");

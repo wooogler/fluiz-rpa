@@ -13,6 +13,7 @@ import {
 } from "./actionEvents";
 import { inputCert } from "./specificEvents";
 import updateDataMap from "./updateDataMap";
+import WebDriverManager from "./WebDriverManager";
 
 const chromeDriverPath = path.join(
   __dirname,
@@ -36,7 +37,7 @@ export async function replayEvents(
     dataMap.set(key, value);
   }
 
-  const driver = new Builder().forBrowser("chrome").build();
+  const driver = await WebDriverManager.getDriver();
 
   try {
     let inputValues: string[] = [];
@@ -112,7 +113,7 @@ export async function replayEvents(
   } finally {
     console.log(dataMap);
     if (quit) {
-      await driver.quit();
+      await WebDriverManager.quitDriver();
     }
   }
 
